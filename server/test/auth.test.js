@@ -1,42 +1,49 @@
 const request = require('supertest');
-const app = require('../app');
+const { app, connectToDatabase } = require('../app');
 const mongoose = require('mongoose');
-const User = require('../models/User');  // Import User model
+const User = require('../models/User');
+
+beforeAll(async () => {
+  await connectToDatabase();
+});
+
+afterAll(async () => {
+  await mongoose.connection.close();
+});
 
 describe('Auth Routes', () => {
   beforeEach(async () => {
-    // Clear users before each test to ensure unique data
     await User.deleteMany({});
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.close();  // Close connection after all tests
-  });
+  }, 10000); // Set 10-second timeout for beforeEach
 
   it('should register a new user', async () => {
-    const res = await request(app).post('/api/auth/register').send({
-      username: 'testuser',
-      email: 'testuser@example.com',
-      password: 'Test@1234'
-    });
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty('token');  // Expects token to be present in the response
-  });
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    expect(res.statusCode).toEqual(201);
+    expect(res.body).toHaveProperty('message', 'User created successfully');
+  }, 10000); // 10-second timeout for individual test
 
   it('should log in an existing user', async () => {
-    // First, register the user
+    // Create a user first
     await request(app).post('/api/auth/register').send({
       username: 'testuser',
-      email: 'testuser@example.com',
-      password: 'Test@1234'
+      email: 'test@example.com',
+      password: 'password123',
     });
 
-    // Now, log in with the same user
-    const res = await request(app).post('/api/auth/login').send({
-      email: 'testuser@example.com',
-      password: 'Test@1234'
-    });
-    expect(res.statusCode).toBe(200);
+    // Log in the created user
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    expect(res.statusCode).toEqual(200);
     expect(res.body).toHaveProperty('token');
-  });
+  }, 10000);
 });

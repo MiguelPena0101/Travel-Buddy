@@ -1,4 +1,4 @@
-require('dotenv').config(); 
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -10,14 +10,24 @@ const activityRoutes = require('./routes/activityRoutes');
 
 const app = express();
 
+// Middleware
 app.use(cors({ origin: 'http://localhost:3000' }));
-
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err));
+// MongoDB connection function
+const connectToDatabase = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('MongoDB connected');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+  }
+};
+
+// Conditionally connect to MongoDB in non-test environments
+if (process.env.NODE_ENV !== 'test') {
+  connectToDatabase();
+}
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -25,4 +35,4 @@ app.use('/api/itineraries', itineraryRoutes);
 app.use('/api/destinations', destinationRoutes);
 app.use('/api/activities', activityRoutes);
 
-module.exports = app;
+module.exports = { app, connectToDatabase };
